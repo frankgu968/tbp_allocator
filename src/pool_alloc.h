@@ -17,4 +17,8 @@ void* pool_malloc(size_t n);
 
 void pool_free(void* ptr);
 
+// Helpers
+void insertionSort(uint16_t* a,const uint8_t size);
+void printMemory();
+
 #endif /* POOL_ALLOC_H_ */
