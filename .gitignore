@@ -2,3 +2,14 @@ Debug/
 .DS_Store
 Makefile.in
 configure
+aclocal.m4
+ar-lib
+autom4te.cache/
+build/
+compile
+config.h.in
+configure
+depcomp
+install-sh
+missing
+test-driver
