@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "pool_alloc.h"
 
@@ -25,7 +26,7 @@ static uint8_t* alloc_end_addr;
 bool pool_init(size_t* block_sizes, size_t block_size_count) {
   // Validate block_sizes list and its items
   assert(!f_pool_init); // Trap if the region has already been initialized
-  if((block_sizes == NULL) || (block_size_count == 0) || (block_size_count > MAX_HEAP_SIZE)) {
+  if((block_sizes == NULL) || (block_size_count == 0) || (block_size_count > UCHAR_MAX + 1)) {
     // Invalid input parameters
     return false;
   }
@@ -90,9 +91,6 @@ bool pool_init(size_t* block_sizes, size_t block_size_count) {
           // Remaining space cannot fit the smallest block
           available_bytes = 0;
           break;
-        } else {
-          // TODO: some condition that will cause the forever loop?
-          return false;
         }
       }
     }
@@ -214,5 +212,4 @@ void printMemory() {
   }
 
   printf("Heap allocation end address: %p\n\n", alloc_end_addr);
-
 }
