@@ -1,1 +1,4 @@
 Debug/
+.DS_Store
+Makefile.in
+configure

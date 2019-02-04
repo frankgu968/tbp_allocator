@@ -8,6 +8,8 @@
 #ifndef POOL_ALLOC_H_
 #define POOL_ALLOC_H_
 
+#include <stdbool.h>
+
 // Max number of bytes in heap data structure
 #define MAX_HEAP_SIZE 65536
 

@@ -7,7 +7,25 @@ The tunable block pool allocator is a simple memory allocator that divides a mem
 
 ## Usage
 See documentation under `docs/`.  
-See code examples under `tests/`.
+See test examples under `tests/`.
+See demos under `demo/`.
+
+To build:
+```bash
+autoreconf --install   # See note below!
+mkdir build && cd build
+../configure
+make all
+make check
+```
+
+Note:
+On some Homebrew-installed machines, the autotools may need to be configured using:
+```bash
+aclocal
+autoreconf -f -i -Wall,no-obsolete
+```
+See this [link](https://github.com/Homebrew/legacy-homebrew/issues/5117).
 
 ## Limitations
 
