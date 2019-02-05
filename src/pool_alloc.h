@@ -1,8 +1,8 @@
-/*
- * pool_alloc.h
- *
- *  Created on: Feb. 4, 2019
- *      Author: Frank Gu
+/**
+ * @file pool_alloc.h
+ * @author Frank Gu
+ * @date 4 Feb 2019
+ * @brief Tunable block pool allocator headers
  */
 
 #ifndef POOL_ALLOC_H_
@@ -49,7 +49,7 @@ bool findFreeSlot(uint8_t* b_addr, uint16_t* blk_free_loc, uint8_t block_size_id
 */
 void insertionSort(uint16_t* a,const uint8_t size);
 
-/** @brief Diagnostic function that will make a detailed print of the heap pool regions. This function will also display each block-size region's occupation map and capacity status. 
+/** @brief Diagnostic function that will make a detailed print of the heap pool regions. This function will also display each block-size region's occupation map and capacity status.
 */
 void printMemory();
 

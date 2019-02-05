@@ -6,9 +6,19 @@ Date: Feb 4, 2019
 The tunable block pool allocator is a simple memory allocator that divides a memory block into various regions; each of which contains equal-sized blocks that can be atomically allocated. This is an extension to common block pool allocators which utilizes fixed block sizes.
 
 ## Usage
-See documentation under `docs/`.  
+#### Prerequisites:
+- autotools
+- (optional)doxygen
+- build-essentials
+
 See test examples under `tests/`.
 See demos under `demo/`.
+
+To build documentation:
+```bash
+cd docs
+doxygen doxygen.config
+```
 
 To build:
 ```bash
