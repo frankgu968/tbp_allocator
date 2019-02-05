@@ -48,3 +48,36 @@ See this [link](https://github.com/Homebrew/legacy-homebrew/issues/5117).
 The single constraint rules out the use of dynamically allocated linked lists to hold memory state data.
 
 ## Implementation
+#### Initialization
+In fulfillment of the design assumptions on space and efficiency, the allocator will use additional heap tp only store simple state variables (# of blocks, initialized flag, relative address of some metadata structures).
+
+The metadata structures consists of a copy of `block_sizes`, offset from base address, base addresses of each block-size region. Within each block-size region, the first *offset* number of bytes is dedicated to a occupation map that defines which slots within that region has been allocated in a one-hot format. See below for a visualization:
+
+```
+Base: g_heap_pool    Offset  
+|----------------| < block_sizes_list  
+| base_sizes     |   0x0  
+|----------------| < block_offset_list  
+| block_offsets  |   sizeof(uint16_t) * num_block_size  
+|----------------| < block_base_addr  
+| base_addresses |   sizeof(uint8_t*) * num_block_size  
+|----------------| < block_base_addr[0] (Smallest block-size region start)
+| occupation_map |
+|----------------| < block_base_addr[0]+block_offset_list[0]
+| Region with m  |   block_size * capacity
+|  size n slices |
+|----------------| < block_base_addr[n]
+|   ...    ...   |
+|----------------| <- alloc_end_addr
+```
+
+`pool_init` will attempt to establish the above structure in g_heap_pool.
+
+#### Allocation
+During allocation, the allocator will simply traverse the block_sizes_list and find the smallest block size that will fit the requested size. The block-size region's occupation map (at block_base_addr[i]) is then traversed bit-wise to check for the first available free slot (bit=0); see `findFreeSlot` function.
+
+If a free slot is found, then the allocator will mark that bit as occupied, and return the address of the free slot.
+
+If a free slot is not found in this block-size region, the allocator will continue to the next block-size region and repeat the search process.
+
+When all block-regions have been traversed, and no free slot is found, then the allocation fails due to lack of space.
