@@ -45,7 +45,7 @@ See this [link](https://github.com/Homebrew/legacy-homebrew/issues/5117).
 3. Allocator frees any valid pointer and recycles the previously allocated space for future allocations
 4. Allocator should provide detailed debug messages to console, but not be included for production.
 
-The single constraint rules out the use of dynamically allocated linked lists to hold memory state data.
+The single constraint rules out the use of dynamically allocated linked lists to hold memory state data. Since there is no information regarding the specific use-case of this allocator, no assumption will be made regarding the distribution of object sizes. The allocator will attempt to allocate relatively equal numbers of slices per block-size.
 
 ## Implementation
 #### Initialization
@@ -72,7 +72,7 @@ Base: g_heap_pool    Offset
 ```
 
 `pool_init` will attempt to establish the above structure in g_heap_pool.
-4 heap region base addresses (`block_sizes_list`, `block_offset_list`, `block_base_addr`, `alloc_end_addr`) are requested as a trade-off of heap usage and speed; calculating these addresses can become a large performance detriment if malloc/frees occur very often. 
+4 heap region base addresses (`block_sizes_list`, `block_offset_list`, `block_base_addr`, `alloc_end_addr`) are requested as a trade-off of heap usage and speed; calculating these addresses can become a large performance detriment if malloc/frees occur very often.
 
 #### Allocation
 During allocation, the allocator will simply traverse the block_sizes_list and find the smallest block size that will fit the requested size. The block-size region's occupation map (at block_base_addr[i]) is then traversed bit-wise to check for the first available free slot (bit=0); see `findFreeSlot` function.

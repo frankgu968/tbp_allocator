@@ -52,6 +52,7 @@ bool pool_init(size_t* block_sizes, size_t block_size_count) {
     heap_ptr += sizeof(uint16_t);
   }
   insertionSort(block_sizes_list, num_block_size);
+  // block_sizes configuration with 1 slice per block-size does not fit g_heap_pool
   assert(heap_ptr < g_pool_heap + sizeof(uint8_t) * MAX_HEAP_SIZE);
 
   block_offset_list = (uint16_t*)heap_ptr;
@@ -133,12 +134,12 @@ bool pool_init(size_t* block_sizes, size_t block_size_count) {
 
 void* pool_malloc(size_t n){
   // Validate input
-  assert(f_pool_init);
+  assert(f_pool_init); // Trap on attempt to malloc before pool initialization
   if((n == 0 ) || (n > block_sizes_list[num_block_size-1])) {
     // Invalid request size
     return NULL;
   }
-  assert(f_pool_init);  // Trap on attempt to malloc before pool initialization
+
   if(n > block_sizes_list[num_block_size - 1]) {
     // Requested size greater than allocable block
 #ifdef DEBUG
@@ -258,7 +259,7 @@ void printMemory() {
   }
   printf("\n");
 
-  printf("Region: Offset -------------------------------------------\n");
+  printf("Region: Base Addresses -------------------------------------------\n");
   printf("Start address: %p\n", block_base_addr);
   for(size_t i = 0; i < num_block_size; i++) {
     printf("Base: %p\n", ((uint8_t**)block_base_addr)[i]);
@@ -289,7 +290,7 @@ void printMemory() {
         }
       }
     }
-    printf("Capacity: %d\n", capacity);
+    printf("Remaining capacity: %d\n", capacity);
     printf("Alloc Start: %p\n", ((uint8_t**)block_base_addr)[i]);
     printf("Alloc End: %p\n", ((uint8_t**)block_base_addr)[i] + ((uint16_t*)block_offset_list)[i]*sizeof(uint8_t) + capacity *((uint16_t*)block_sizes_list)[i]);
     printf("Occ Map: %s\n", occ_map_str);
