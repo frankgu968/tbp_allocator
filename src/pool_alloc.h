@@ -20,6 +20,7 @@ void* pool_malloc(size_t n);
 void pool_free(void* ptr);
 
 // Helpers
+bool findFreeSlot(uint8_t* b_addr, uint16_t* blk_free_loc, uint8_t block_size_idx);
 void insertionSort(uint16_t* a,const uint8_t size);
 void printMemory();
 

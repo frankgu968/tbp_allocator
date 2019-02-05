@@ -132,11 +132,66 @@ bool pool_init(size_t* block_sizes, size_t block_size_count) {
 
 
 void* pool_malloc(size_t n){
-  // TODO
+  // Validate input
+  assert(f_pool_init);
+  if((n == 0 ) || (n > block_sizes_list[num_block_size-1])) {
+    // Invalid request size
+    return NULL;
+  }
+  assert(f_pool_init);  // Trap on attempt to malloc before pool initialization
+  if(n > block_sizes_list[num_block_size - 1]) {
+    // Requested size greater than allocable block
+#ifdef DEBUG
+    printf("[TMA] Requested size greater than largest block size!\n");
+#endif
+    return NULL;
+  }
+
+  // Find the smallest block that fits the data
+  uint8_t i = 0;
+  for(; i < num_block_size; i++) {
+    // Try to find a free slot in the smallest block size that will fit the request
+    uint16_t free_slot_loc = 0;
+    uint8_t* base_addr = block_base_addr[i];
+    if((block_sizes_list[i] >= n) && (findFreeSlot(base_addr, &free_slot_loc, i))) {
+      // Calculate the location of the free slot
+      return (void*) (base_addr + block_offset_list[i] + free_slot_loc * block_sizes_list[i]);
+    }
+  }
+   // ERROR: Did not find a block that fit the requested size
+   return NULL;
 }
 
 void pool_free(void* ptr) {
   // TODO
+}
+
+// Helper functions
+bool findFreeSlot(uint8_t* b_addr, uint16_t* blk_free_loc, uint8_t block_size_idx) {
+  uint16_t om_size = block_offset_list[block_size_idx]; // Byte span of occupied map
+  uint16_t free_loc = 0;
+  for(uint16_t om_byte_idx = 0; om_byte_idx < om_size; om_byte_idx++) {
+    uint8_t om_byte_val = (uint8_t) *(b_addr + om_byte_idx);
+    if(om_byte_val != 255){
+      // There is a free slot in this byte slice mapping
+      for(uint8_t i = 0; i < 8; i++){
+        if(om_byte_val & 0x1) {
+          // Slot is occupied
+          free_loc++;
+          om_byte_val = om_byte_val >> 0x1;
+        } else {
+          // Slot free, mark as used now
+          *(b_addr + om_byte_idx) = (*(b_addr + om_byte_idx)) | (0x1 << i);
+          *blk_free_loc = free_loc;
+          return true;
+        }
+      }
+    } else {
+      free_loc += 8;
+    }
+  }
+  // Went through the occupied map and found no open slot
+  return false;
 }
 
 // Helpers

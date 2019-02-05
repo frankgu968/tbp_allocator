@@ -124,37 +124,212 @@ START_TEST (total_too_large)
 END_TEST
 // END Test Suite: Tricky memory block list combinations
 
-Suite * pool_alloc_suite(void)
+Suite * pool_init_suite(void)
 {
-    Suite* s = suite_create("pool_init");
+  Suite* s = suite_create("pool_init");
 
-    TCase* tc_normal_init = tcase_create("Normal memory initialization");
-    tcase_add_test(tc_normal_init, pool_init_unsorted);
-    tcase_add_test(tc_normal_init, pool_init_sorted);
-    suite_add_tcase(s, tc_normal_init);
+  TCase* tc_normal_init = tcase_create("Normal memory initialization");
+  tcase_add_test(tc_normal_init, pool_init_unsorted);
+  tcase_add_test(tc_normal_init, pool_init_sorted);
+  suite_add_tcase(s, tc_normal_init);
 
-    TCase* tc_bad_init_params = tcase_create("Bad initialization parameters");
-    tcase_add_test(tc_bad_init_params, list_too_long);
-    tcase_add_test(tc_bad_init_params, list_size_zero);
-    tcase_add_test(tc_bad_init_params, null_list_pointer);
-    tcase_add_test(tc_bad_init_params, invalid_list_item);
-    suite_add_tcase(s, tc_bad_init_params);
+  TCase* tc_bad_init_params = tcase_create("Bad initialization parameters");
+  tcase_add_test(tc_bad_init_params, list_too_long);
+  tcase_add_test(tc_bad_init_params, list_size_zero);
+  tcase_add_test(tc_bad_init_params, null_list_pointer);
+  tcase_add_test(tc_bad_init_params, invalid_list_item);
+  suite_add_tcase(s, tc_bad_init_params);
 
-    TCase* tc_tricky_combinations = tcase_create("Tricky memory block list combinations");
-    tcase_add_test(tc_tricky_combinations, total_too_large);
-    suite_add_tcase(s, tc_tricky_combinations);
+  TCase* tc_tricky_combinations = tcase_create("Tricky memory block list combinations");
+  tcase_add_test(tc_tricky_combinations, total_too_large);
+  suite_add_tcase(s, tc_tricky_combinations);
 
-    return s;
+  return s;
+}
+
+// START Test Suite: pool_malloc_suite
+/*
+ * Test: single_alloc
+ * Description: Obtain a pointer at the correct location by validating the relative position of offset_list and base_addr
+ * Precondition: block_sizes = {32, 64}, request size 20
+ * Postcondition: A pointer with the correct relative location
+ */
+START_TEST (single_alloc)
+{
+  size_t sizes_list[2] = {32, 64};
+  size_t num_elements = 2;
+
+  bool result = pool_init(sizes_list, num_elements);
+  ck_assert(result);
+  uint8_t* result_ptr = (uint8_t*) pool_malloc(20);
+
+  // With MAX_HEAP_SIZE = 65536, we should get
+  // 681 slices (9 bytes) - 32B
+  // 680 slices (8 bytes) - 64B
+  void* base_addr_32 = result_ptr - 86;
+  void* addr_list = base_addr_32 - num_elements * sizeof(uint8_t*);
+  void* offset_addr = addr_list - 4;
+  ck_assert_ptr_eq(*((uint8_t**)addr_list), base_addr_32);
+  ck_assert_uint_eq(*((uint16_t*)offset_addr), 86);
+}
+END_TEST
+
+/*
+ * Test: multi_size_alloc
+ * Description: Obtain two pointers from different blocks at the correct locations by validating the relative positions of offset_list and base_addr
+ * Precondition: block_sizes = {32, 64}, request size 20 and 40
+ * Postcondition: A pointer with the correct relative location
+ */
+START_TEST (multi_size_alloc)
+{
+  size_t sizes_list[2] = {32, 64};
+  size_t num_elements = 2;
+
+  bool result = pool_init(sizes_list, num_elements);
+  ck_assert(result);
+  void* ptr_20 = (uint8_t*) pool_malloc(20);
+  void* ptr_40 = (uint8_t*) pool_malloc(40);
+
+  // With MAX_HEAP_SIZE = 65536, we should get
+  // 681 slices (9 bytes) - 32B
+  // 680 slices (8 bytes) - 64B
+
+  // Ensure ptr_20 is allocated correctly
+  void* base_addr_32 = ptr_20 - 86;
+  void* addr_list = base_addr_32 - num_elements * sizeof(uint8_t*);
+  void* offset_addr = addr_list - 4;
+  ck_assert_ptr_eq(*((uint8_t**)addr_list), base_addr_32);
+  ck_assert_uint_eq(*((uint16_t*)offset_addr), 86);
+
+  // Ensure ptr_40 is allocated correctly
+  void* base_addr_64 = ((uint8_t**)addr_list)[1];
+  uint16_t offset_64 = *((uint16_t*)(offset_addr + sizeof(uint16_t)));
+  ck_assert_uint_eq(offset_64, 85);
+  ck_assert_ptr_eq(base_addr_64 + offset_64, ptr_40);
+}
+END_TEST
+
+/*
+ * Test: fill_block_alloc
+ * Description: Continuously request 20 for 682 units and verify the 682nd unit is in the 64B block region
+ * Precondition: block_sizes = {32, 64}, request size 20 for 682 times
+ * Postcondition: A pointer with the correct relative location
+ */
+START_TEST (fill_block_alloc)
+{
+  size_t sizes_list[2] = {32, 64};
+  size_t num_elements = 2;
+
+  bool result = pool_init(sizes_list, num_elements);
+  ck_assert(result);
+  void* ptr_in_32 = pool_malloc(20); // Used to easily calculate offsets
+  for(size_t i = 1; i < 681; i++){
+    pool_malloc(20);
+  }
+  void* result_ptr = pool_malloc(20);
+  // Calculate where the base address of the 64 B region is and compare
+  // With MAX_HEAP_SIZE = 65536, we should get
+  // 681 slices (9 bytes) - 32B
+  // 680 slices (8 bytes) - 64B
+
+  // Ensure ptr_20 is allocated correctly
+  void* base_addr_32 = ptr_in_32 - 86;
+  void* addr_list = base_addr_32 - num_elements * sizeof(uint8_t*);
+  void* offset_addr = addr_list - 4;
+
+  // Ensure ptr_40 is allocated correctly
+  void* base_addr_64 = ((uint8_t**)addr_list)[1];
+  uint16_t offset_64 = *((uint16_t*)(offset_addr + sizeof(uint16_t)));
+  ck_assert_uint_eq(offset_64, 85);
+  ck_assert_ptr_eq(base_addr_64 + offset_64, result_ptr);
+}
+END_TEST
+
+/*
+ * Test: no_space_left
+ * Description: Check attempt to malloc with no space left
+ * Precondition: block_sizes = {32, 64}, request size 40, 681 times
+ * Postcondition: NULL pointer returned
+ */
+START_TEST (no_space_left)
+{
+  size_t sizes_list[2] = {32, 64};
+  size_t num_elements = 2;
+
+  bool result = pool_init(sizes_list, num_elements);
+  ck_assert(result);
+  for(size_t i = 0; i < 680; i++){
+    pool_malloc(40);
+  }
+  void* result_ptr = pool_malloc(40);
+  ck_assert_ptr_eq(result_ptr, NULL);
+}
+END_TEST
+
+/*
+ * Test: zero_size
+ * Description: Attempt to allocate a 0-sized chunk
+ * Precondition: block_sizes = {32, 64}, request size 0
+ * Postcondition: NULL pointer returned
+ */
+START_TEST (zero_size)
+{
+  size_t sizes_list[2] = {32, 64};
+  size_t num_elements = 2;
+
+  bool result = pool_init(sizes_list, num_elements);
+  ck_assert(result);
+
+  void* result_ptr = pool_malloc(0);
+  ck_assert_ptr_eq(result_ptr, NULL);
+}
+END_TEST
+
+/*
+ * Test: too_large
+ * Description: Attempt to allocate a chunk larger than the largest block size
+ * Precondition: block_sizes = {32, 64}, request size 65
+ * Postcondition: NULL pointer returned
+ */
+START_TEST (too_large)
+{
+  size_t sizes_list[2] = {32, 64};
+  size_t num_elements = 2;
+
+  bool result = pool_init(sizes_list, num_elements);
+  ck_assert(result);
+
+  void* result_ptr = pool_malloc(65);
+  ck_assert_ptr_eq(result_ptr, NULL);
+}
+END_TEST
+// END Test Suite: pool_malloc_suite
+
+Suite * pool_malloc_suite(void)
+{
+  Suite* s = suite_create("pool_malloc");
+
+  TCase* tc_normal_malloc = tcase_create("Normal memory requests");
+  tcase_add_test(tc_normal_malloc, single_alloc);
+  tcase_add_test(tc_normal_malloc, multi_size_alloc);
+  tcase_add_test(tc_normal_malloc, fill_block_alloc);
+  tcase_add_test(tc_normal_malloc, no_space_left);
+  suite_add_tcase(s, tc_normal_malloc);
+
+  TCase* tc_invalid_req = tcase_create("Invalid request size");
+  tcase_add_test(tc_invalid_req, zero_size);
+  tcase_add_test(tc_invalid_req, too_large);
+  suite_add_tcase(s, tc_invalid_req);
+  return s;
 }
 
 int main(void)
 {
     int number_failed;
-    Suite *s;
-    SRunner *sr;
 
-    s = pool_alloc_suite();
-    sr = srunner_create(s);
+    Suite* init_suite = pool_init_suite();
+    SRunner* sr = srunner_create(init_suite);
+    srunner_add_suite(sr, pool_malloc_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

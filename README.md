@@ -72,6 +72,7 @@ Base: g_heap_pool    Offset
 ```
 
 `pool_init` will attempt to establish the above structure in g_heap_pool.
+4 heap region base addresses (`block_sizes_list`, `block_offset_list`, `block_base_addr`, `alloc_end_addr`) are requested as a trade-off of heap usage and speed; calculating these addresses can become a large performance detriment if malloc/frees occur very often. 
 
 #### Allocation
 During allocation, the allocator will simply traverse the block_sizes_list and find the smallest block size that will fit the requested size. The block-size region's occupation map (at block_base_addr[i]) is then traversed bit-wise to check for the first available free slot (bit=0); see `findFreeSlot` function.
