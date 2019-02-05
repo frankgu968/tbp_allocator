@@ -323,6 +323,65 @@ Suite * pool_malloc_suite(void)
   return s;
 }
 
+// START Test Suite: pool_free_suite
+/*
+ * Test: single_free
+ * Description: Allocate and free a single pointer
+ * Precondition: block_sizes = {1024, 7763}, request and free an allocation 'old_alloc'
+ * Postcondition: Newly allocated block and previously allocated block should have same pointer value
+ */
+START_TEST (single_free)
+{
+  size_t sizes_list[2] = {1024, 7763};
+  size_t num_elements = 2;
+
+  bool result = pool_init(sizes_list, num_elements);
+  ck_assert(result);
+  void* old_alloc = pool_malloc(80);
+  ck_assert_ptr_ne(old_alloc, NULL);
+  pool_free(old_alloc);
+
+  // A new allocation within the same block should take the exact same address as the old block
+  void* new_alloc = pool_malloc(120);
+  ck_assert_ptr_eq(new_alloc, old_alloc);
+}
+END_TEST
+
+/*
+ * Test: unaligned_ptr
+ * Description: Unaligned pointer free should not occur
+ * Precondition: Value at an unaligned address is written to 0xFF
+ * Postcondition: Value should not change
+ */
+START_TEST (unaligned_ptr)
+{
+  size_t sizes_list[5] = {1024, 7763, 4, 7, 99};
+  size_t num_elements = 5;
+
+  bool result = pool_init(sizes_list, num_elements);
+  ck_assert(result);
+  void* result_ptr = pool_malloc(80);
+  void* unaligned_ptr = result_ptr+1;
+  *((uint16_t*)unaligned_ptr) = 0xFF;
+
+  pool_free(unaligned_ptr);
+  ck_assert_uint_eq(*((uint16_t*)unaligned_ptr), 0xFF);
+}
+END_TEST
+// END Test Suite: pool_free_suite
+
+
+Suite * pool_free_suite(void)
+{
+  Suite* s = suite_create("pool_free");
+
+  TCase* tc_normal_free = tcase_create("Normal free");
+  tcase_add_test(tc_normal_free, single_free);
+  suite_add_tcase(s, tc_normal_free);
+  
+  return s;
+}
+
 int main(void)
 {
     int number_failed;
@@ -330,6 +389,7 @@ int main(void)
     Suite* init_suite = pool_init_suite();
     SRunner* sr = srunner_create(init_suite);
     srunner_add_suite(sr, pool_malloc_suite());
+    srunner_add_suite(sr, pool_free_suite());
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);

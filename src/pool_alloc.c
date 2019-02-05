@@ -186,8 +186,10 @@ void pool_free(void* ptr){
       uint16_t occ_map_byte_offset = occ_map_bit_offset / 8;
       uint8_t  last_byte_bit_offset = occ_map_bit_offset % 8;
 
-      // Set the occupation map bit to 0
+      // Trap on attempted double free
       assert(((*(base_addr + occ_map_byte_offset)) >> last_byte_bit_offset) & 0x1);
+
+      // Set the occupation map bit to 0
       *(base_addr + occ_map_byte_offset) = *(base_addr + occ_map_byte_offset) & ((uint8_t)~(0x1 << (last_byte_bit_offset)));
       break;
     }
