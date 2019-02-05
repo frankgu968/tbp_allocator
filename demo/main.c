@@ -28,5 +28,21 @@ int main(void) {
   } else {
     printf("Pool init failed...\n");
   }
+
+	void* alloc_result = pool_malloc(17);
+	void* alloc_result2 = pool_malloc(17);
+	void* alloc_result3 = pool_malloc(17);
+	if(alloc_result != NULL){
+		printf("Allocated pointer: %p\n", alloc_result);
+		printMemory();
+		pool_free(alloc_result2);
+		printMemory();
+		void* alloc_result4 = pool_malloc(17);
+		printMemory();
+		pool_free(alloc_result);
+	} else {
+		printf("Could not get allocation!");
+	}
+	
 	return EXIT_SUCCESS;
 }

@@ -162,8 +162,36 @@ void* pool_malloc(size_t n){
    return NULL;
 }
 
-void pool_free(void* ptr) {
-  // TODO
+void pool_free(void* ptr){
+  assert(f_pool_init);  // Trap on attempt to free before pool initialization
+
+  if((ptr == NULL) || ((uint8_t*)ptr < g_pool_heap) || ((uint8_t*)ptr > alloc_end_addr)) {
+#ifdef DEBUG
+    printf("[TMA] Invalid pointer %p to free!\n", ptr);
+#endif
+    return;  // Invalid pointer
+  }
+
+  // Find which block the pointer belongs to
+  for(uint8_t i = num_block_size - 1; i >= 0; i--) {
+    uint8_t* base_addr = block_base_addr[i];
+    if((uint8_t*)ptr >= base_addr + block_offset_list[i]) {
+      // Check occupation map for pointer
+      uint16_t ptr_alloc_offset = (uint8_t*)ptr - (base_addr + block_offset_list[i]);
+
+      // Trap if the pointer is unaligned
+      assert(ptr_alloc_offset % block_sizes_list[i] == 0);
+
+      uint16_t occ_map_bit_offset = ptr_alloc_offset / (block_sizes_list[i]);
+      uint16_t occ_map_byte_offset = occ_map_bit_offset / 8;
+      uint8_t  last_byte_bit_offset = occ_map_bit_offset % 8;
+
+      // Set the occupation map bit to 0
+      assert(((*(base_addr + occ_map_byte_offset)) >> last_byte_bit_offset) & 0x1);
+      *(base_addr + occ_map_byte_offset) = *(base_addr + occ_map_byte_offset) & ((uint8_t)~(0x1 << (last_byte_bit_offset)));
+      break;
+    }
+  }
 }
 
 // Helper functions
