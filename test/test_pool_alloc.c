@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <check.h>
 
-#include "../src/pool_alloc.h"
+#include "include/pool_alloc.h"
 
 // START Test Suite: Normal memory initialization
 /*
@@ -378,7 +378,7 @@ Suite * pool_free_suite(void)
   TCase* tc_normal_free = tcase_create("Normal free");
   tcase_add_test(tc_normal_free, single_free);
   suite_add_tcase(s, tc_normal_free);
-  
+
   return s;
 }
 

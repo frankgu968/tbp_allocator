@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "include/pool_alloc.h"
 #define NUM_ELEMENTS 5
 
 int main(void) {
