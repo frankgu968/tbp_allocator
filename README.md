@@ -40,9 +40,9 @@ See this [link](https://github.com/Homebrew/legacy-homebrew/issues/5117).
 ## Limitations
 | Subject | Limitation |
 |---------|------------|
-| block_size_count | Min: 1, Max: 255 |
-| block_sizes item | Min 1, Max: 65535 |
-| Allocation request size | Min: 0, Max 65535 | 
+| block_size_count | Min: 1 unit, Max: 255 units |
+| block_sizes item | Min 1B, Max: 65535B |
+| Allocation request size | Min: 1B, Max 65535B | 
 
 ## Design Considerations
 #### Assumptions
