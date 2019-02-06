@@ -38,6 +38,11 @@ autoreconf -f -i -Wall,no-obsolete
 See this [link](https://github.com/Homebrew/legacy-homebrew/issues/5117).
 
 ## Limitations
+| Subject | Limitation |
+|---------|------------|
+| block_size_count | Min: 1, Max: 255 |
+| block_sizes item | Min 1, Max: 65535 |
+| Allocation request size | Min: 0, Max 65535 | 
 
 ## Design Considerations
 #### Assumptions
